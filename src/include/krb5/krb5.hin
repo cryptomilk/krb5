@@ -6361,6 +6361,17 @@ krb5_enctype_to_name(krb5_enctype enctype, krb5_boolean shortest,
                      char *buffer, size_t buflen);
 
 /**
+ * Convert a checksum typ eto an encryption type
+ *
+ * @param [in]  ctype           Checksum type
+ * @param [out] etype           Encryption type
+ *
+ * @retval 0  Success; otherwise - Kerberos error codes
+ */
+krb5_error_code KRB5_CALLCONV
+krb5_cksumtype_to_enctype(krb5_cksumtype ctype, krb5_enctype *etype);
+
+/**
  * Convert a salt type to a string.
  *
  * @param [in]  salttype        Salttype to convert

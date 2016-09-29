@@ -131,3 +131,18 @@ krb5_enctype_to_name(krb5_enctype enctype, krb5_boolean shortest,
         return ENOMEM;
     return 0;
 }
+
+krb5_error_code KRB5_CALLCONV
+krb5_cksumtype_to_enctype(krb5_cksumtype ctype, krb5_enctype *etype)
+{
+    int i;
+
+    for (i = 0; i < krb5int_enctypes_length; i++) {
+        if (krb5int_enctypes_list[i].required_ctype == ctype) {
+            *etype = krb5int_enctypes_list[i].etype;
+            return 0;
+        }
+    }
+
+    return EINVAL;
+}
