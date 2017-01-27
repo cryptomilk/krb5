@@ -129,7 +129,7 @@ process_tgs_req(struct server_handle *handle, krb5_data *pkt,
     krb5_pa_s4u_x509_user *s4u_x509_user = NULL; /* protocol transition request */
     krb5_authdata **kdc_issued_auth_data = NULL; /* auth data issued by KDC */
     unsigned int c_flags = 0, s_flags = 0;       /* client/server KDB flags */
-    krb5_boolean is_referral;
+    krb5_boolean is_referral = FALSE;
     const char *emsg = NULL;
     krb5_kvno ticket_kvno = 0;
     struct kdc_request_state *state = NULL;
@@ -253,14 +253,19 @@ process_tgs_req(struct server_handle *handle, krb5_data *pkt,
 
     errcode = search_sprinc(kdc_active_realm, request, s_flags, &server,
                             &status);
-    if (errcode != 0)
+    if (errcode == KRB5KDC_ERR_WRONG_REALM) {
+        is_referral = TRUE;
+    } else if (errcode != 0) {
         goto cleanup;
+    }
     sprinc = server->princ;
 
     /* If we got a cross-realm TGS which is not the requested server, we are
      * issuing a referral (or alternate TGT, which we treat similarly). */
-    is_referral = is_cross_tgs_principal(server->princ) &&
-        !krb5_principal_compare(kdc_context, request->server, server->princ);
+    if (!is_referral) {
+        is_referral = is_cross_tgs_principal(server->princ) &&
+            !krb5_principal_compare(kdc_context, request->server, server->princ);
+    }
 
     au_state->stage = VALIDATE_POL;
 
