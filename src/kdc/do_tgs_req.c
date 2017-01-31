@@ -251,6 +251,9 @@ process_tgs_req(struct server_handle *handle, krb5_data *pkt,
         setflag(s_flags, KRB5_KDB_FLAG_CANONICALIZE);
     }
 
+    if (!krb5_principal_compare(header_server->princ, tgs_server))
+        setflag(s_flags, KRB5_KDB_FLAG_CROSS_REALM);
+
     errcode = search_sprinc(kdc_active_realm, request, s_flags, &server,
                             &status);
     if (errcode != 0)
