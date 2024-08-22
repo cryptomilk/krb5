@@ -63,7 +63,7 @@ main(void)
     noerror(krad_attrset_add(set, krad_attr_name2num("User-Password"), &tmp));
 
     /* Encode attrset. */
-    noerror(kr_attrset_encode(set, "foo", auth, buffer, &encode_len,
+    noerror(kr_attrset_encode(set, "foo", auth, FALSE, buffer, &encode_len,
                               &is_fips));
     krad_attrset_free(set);
 

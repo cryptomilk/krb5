@@ -49,6 +49,8 @@
 #define UCHAR_MAX 255
 #endif
 
+#define MD5_DIGEST_SIZE 16
+
 /* RFC 2865 */
 #define MAX_ATTRSIZE (UCHAR_MAX - 2)
 #define MAX_ATTRSETSIZE (KRAD_PACKET_SIZE_MAX - 20)
@@ -79,10 +81,11 @@ kr_attr_decode(krb5_context ctx, const char *secret, const unsigned char *auth,
                krad_attr type, const krb5_data *in,
                unsigned char outbuf[MAX_ATTRSIZE], size_t *outlen);
 
-/* Encode the attributes into the buffer. */
+/* Encode set into outbuf.  If add_msgauth is true, include a zeroed
+ * Message-Authenticator as the first attribute. */
 krb5_error_code
 kr_attrset_encode(const krad_attrset *set, const char *secret,
-                  const unsigned char *auth,
+                  const uint8_t *auth, krb5_boolean add_msgauth,
                   unsigned char outbuf[MAX_ATTRSETSIZE], size_t *outlen,
                   krb5_boolean *is_fips);
 
