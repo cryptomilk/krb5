@@ -2276,11 +2276,11 @@ crypto_retrieve_X509_sans(krb5_context context,
 {
     krb5_error_code retval = EINVAL;
     char buf[DN_BUF_LEN];
-    int p = 0, u = 0, d = 0, ret = 0, l;
+    size_t num_sans = 0, p = 0, u = 0, d = 0, i;
+    int l;
     krb5_principal *princs = NULL;
     char **upns = NULL;
     unsigned char **dnss = NULL;
-    unsigned int i, num_sans = 0;
     X509_EXTENSION *ext = NULL;
     GENERAL_NAMES *ialt = NULL;
     GENERAL_NAME *gen = NULL;
@@ -2353,8 +2353,7 @@ crypto_retrieve_X509_sans(krb5_context context,
                 print_buffer_bin((unsigned char *)name.data, name.length,
                                  "/tmp/pkinit_san");
 #endif
-                ret = k5int_decode_krb5_principal_name(&name, &princs[p]);
-                if (ret) {
+                if (k5int_decode_krb5_principal_name(&name, &princs[p]) != 0) {
                     pkiDebug("%s: failed decoding pkinit san value\n",
                              __FUNCTION__);
                 } else {
@@ -2366,7 +2365,7 @@ crypto_retrieve_X509_sans(krb5_context context,
                 /* Prevent abuse of embedded null characters. */
                 if (memchr(name.data, '\0', name.length))
                     break;
-                upns[u] = k5memdup0(name.data, name.length, &ret);
+                upns[u] = k5memdup0(name.data, name.length, &retval);
                 if (upns[u] == NULL)
                     goto cleanup;
                 u++;
@@ -3272,7 +3271,8 @@ pkinit_process_td_dh_params(krb5_context context,
 {
     krb5_error_code retval = KRB5KDC_ERR_DH_KEY_PARAMETERS_NOT_ACCEPTED;
     EVP_PKEY *params = NULL;
-    int i, dh_bits, old_dh_size;
+    int dh_bits, old_dh_size;
+    size_t i;
 
     pkiDebug("dh parameters\n");
 
@@ -4752,9 +4752,9 @@ error:
  */
 static krb5_error_code
 crypto_cert_get_count(pkinit_identity_crypto_context id_cryptoctx,
-                      int *cert_count)
+                      size_t *cert_count)
 {
-    int count;
+    size_t count;
 
     *cert_count = 0;
     if (id_cryptoctx == NULL || id_cryptoctx->creds[0] == NULL)
@@ -4771,7 +4771,7 @@ void
 crypto_cert_free_matching_data(krb5_context context,
                                pkinit_cert_matching_data *md)
 {
-    int i;
+    size_t i;
 
     if (md == NULL)
         return;
@@ -4793,7 +4793,7 @@ void
 crypto_cert_free_matching_data_list(krb5_context context,
                                     pkinit_cert_matching_data **list)
 {
-    int i;
+    size_t i;
 
     for (i = 0; list != NULL && list[i] != NULL; i++)
         crypto_cert_free_matching_data(context, list[i]);
@@ -4855,7 +4855,7 @@ crypto_cert_get_matching_data(krb5_context context,
 {
     krb5_error_code ret;
     pkinit_cert_matching_data **md_list = NULL;
-    int count, i;
+    size_t count, i;
 
     ret = crypto_cert_get_count(id_cryptoctx, &count);
     if (ret)
@@ -4934,7 +4934,7 @@ crypto_cert_select_default(krb5_context context,
                            pkinit_identity_crypto_context id_cryptoctx)
 {
     krb5_error_code retval;
-    int cert_count;
+    size_t cert_count;
 
     retval = crypto_cert_get_count(id_cryptoctx, &cert_count);
     if (retval)
@@ -5421,7 +5421,7 @@ pkinit_process_td_trusted_certifiers(
     ASN1_OCTET_STRING *id = NULL;
     const unsigned char *p = NULL;
     char buf[DN_BUF_LEN];
-    int i = 0;
+    size_t i = 0;
 
     if (td_type == TD_TRUSTED_CERTIFIERS)
         pkiDebug("received trusted certifiers\n");
@@ -5530,7 +5530,7 @@ static krb5_error_code
 p11err(krb5_context context, CK_RV rv, const char *op)
 {
     krb5_error_code code = KRB5KDC_ERR_PREAUTH_FAILED;
-    int i;
+    size_t i;
     const char *msg;
 
     for (i = 0; pkcs11_errstrings[i].text != NULL; i++) {
