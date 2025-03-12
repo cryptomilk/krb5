@@ -365,12 +365,13 @@ iakerb_acceptor_step(iakerb_ctx_id_t ctx, gss_cred_id_t verifier_cred,
     if (code != 0)
         goto cleanup;
 
-    if (realm.length == 0 && request.length == 0) {
-        /* This is a realm discovery request. */
-        code = iakerb_acceptor_realm(ctx, verifier_cred, output_token);
-        goto cleanup;
-    } else if (realm.length == 0 || request.length == 0) {
-        code = KRB5_BAD_MSIZE;
+    if (realm.length == 0 || request.length == 0) {
+        if (realm.length == request.length) {
+            /* This is a realm discovery request: both lengths are 0 */
+            code = iakerb_acceptor_realm(ctx, verifier_cred, output_token);
+        } else {
+            code = KRB5_BAD_MSIZE;
+        }
         goto cleanup;
     }
 
