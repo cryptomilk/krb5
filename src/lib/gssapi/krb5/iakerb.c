@@ -620,6 +620,9 @@ iakerb_initiator_step(iakerb_ctx_id_t ctx,
             goto cleanup;
         }
 
+        krb5int_trace(ctx->k5c, "XXXXXX IAKERB_REALM_DISCOVERY server_realm={lenstr}\n", (size_t)server_realm.length, server_realm.data);
+        fprintf(stderr, "XXXXXX server_realm=%*s\n", server_realm.length, server_realm.data);
+
         /* The acceptor should have sent us its realm. */
         if (server_realm.length == 0) {
             code = KRB5_BAD_MSIZE;
@@ -639,8 +642,11 @@ iakerb_initiator_step(iakerb_ctx_id_t ctx,
                 goto cleanup;
         }
 
+        krb5int_trace(ctx->k5c, "XXXXXX IAKERB_AS_REQ BEFORE krb5_init_creds_step\n");
         code = krb5_init_creds_step(ctx->k5c, ctx->icc, &in, &out, &realm,
                                     &flags);
+        krb5int_trace(ctx->k5c, "XXXXXX IAKERB_AS_REQ AFTER code={int}, realm={lenstr}\n", code, (size_t)realm.length, realm.data);
+        fprintf(stderr, "XXXXXX IAKERB_AS_REQ AFTER code=%d, realm=%*s\n", code, realm.length, realm.data);
         if (code != 0) {
             if (cred->have_tgt) {
                 /* We were trying to refresh; keep going with current creds. */
@@ -669,8 +675,11 @@ iakerb_initiator_step(iakerb_ctx_id_t ctx,
                 goto cleanup;
         }
 
+        krb5int_trace(ctx->k5c, "XXXXXX IAKERB_TGS_REQ BEFORE krb5_tkt_creds_step\n");
+        fprintf(stderr, "XXXXXX IAKERB_TGS_REQ BEFORE krb5_tkt_creds_step\n");
         code = krb5_tkt_creds_step(ctx->k5c, ctx->tcc, &in, &out, &realm,
                                    &flags);
+        fprintf(stderr, "XXXXXX IAKERB_TGS_REQ AFTER krb5_tkt_creds_step: %d\n", code);
         if (code != 0)
             goto cleanup;
         if (!(flags & KRB5_TKT_CREDS_STEP_FLAG_CONTINUE)) {
