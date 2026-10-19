@@ -219,11 +219,15 @@ iakerb_verify_finished(krb5_context context,
         return KRB5KDC_ERR_NULL_KEY;
 
     code = decode_krb5_iakerb_finished(finished, &iaf);
-    if (code != 0)
+    if (code != 0) {
+        TRACE_GSS_IAKERB_FINISHED_DECODE_FAIL(context, code);
         return code;
+    }
 
     code = krb5_k_verify_checksum(context, key, KRB5_KEYUSAGE_FINISHED, conv,
                                   &iaf->checksum, &valid);
+    TRACE_GSS_IAKERB_FINISHED_VERIFY(context, iaf->checksum.checksum_type,
+                                     conv->length, conv->data, code, valid);
     if (code == 0 && valid == FALSE)
         code = KRB5KRB_AP_ERR_BAD_INTEGRITY;
 
@@ -247,6 +251,9 @@ iakerb_save_token(iakerb_ctx_id_t ctx, const gss_buffer_t token)
     memcpy(p + ctx->conv.length, token->value, token->length);
     ctx->conv.data = p;
     ctx->conv.length += token->length;
+
+    TRACE_GSS_IAKERB_SAVE_TOKEN(ctx->k5c, token->length, token->value,
+                                ctx->conv.length, ctx->conv.data);
 
     return 0;
 }

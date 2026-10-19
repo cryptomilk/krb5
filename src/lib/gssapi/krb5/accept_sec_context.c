@@ -470,6 +470,9 @@ process_checksum(OM_uint32 *minor_status, krb5_context context,
 
     cb_cksum.contents = NULL;
 
+    TRACE_GSS_AP_REQ_CKSUMTYPE(context, cksum != NULL,
+                               cksum != NULL ? cksum->checksum_type : 0);
+
     if (cksum == NULL) {
         /*
          * Some SMB client implementations use handcrafted GSSAPI code that
@@ -835,6 +838,9 @@ kg_accept_krb5(OM_uint32 *minor_status, gss_ctx_id_t *context_handle,
     if (major_status != GSS_S_COMPLETE)
         goto fail;
 
+    TRACE_GSS_IAKERB_VERIFIED(context,
+                              exts->iakerb.conv ? exts->iakerb.conv->length : 0,
+                              exts->iakerb.verified);
     if (exts->iakerb.conv && !exts->iakerb.verified) {
         major_status = GSS_S_BAD_SIG;
         goto fail;

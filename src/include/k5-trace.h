@@ -207,6 +207,27 @@ void krb5int_trace(krb5_context context, const char *fmt, ...);
 #define TRACE_GSS_CLIENT_KEYTAB_FAIL(c, ret)                            \
     TRACE(c, "Unable to resolve default client keytab: {kerr}", ret)
 
+#define TRACE_GSS_AP_REQ_CKSUMTYPE(c, has_cksum, cksumtype)               \
+    TRACE(c, "AP-REQ authenticator checksum present: {int}, type {int}", \
+          (int)(has_cksum), (int)(cksumtype))
+#define TRACE_GSS_IAKERB_VERIFIED(c, convlen, verified)                  \
+    TRACE(c, "IAKERB conversation length {int}, Finished verified: "     \
+          "{int}", (int)(convlen), (int)(verified))
+#define TRACE_GSS_IAKERB_FINISHED_DECODE_FAIL(c, ret)                     \
+    TRACE(c, "IAKERB Finished checksum decode failed: {kerr}", ret)
+#define TRACE_GSS_IAKERB_SAVE_TOKEN(c, toklen, tokdata, convlen, convdata) \
+    TRACE(c, "IAKERB saving token of length {int} ({hashlenstr}) to "     \
+          "conversation; new conversation length {int} ({hashlenstr})",  \
+          (int)(toklen), (size_t)(toklen), (const char *)(tokdata),       \
+          (int)(convlen), (size_t)(convlen), (const char *)(convdata))
+#define TRACE_GSS_IAKERB_FINISHED_VERIFY(c, cksumtype, convlen, convdata, \
+                                         ret, valid)                      \
+    TRACE(c, "IAKERB Finished checksum (type {int}) verify over "        \
+          "conversation length {int} ({hashlenstr}): result {kerr}, "    \
+          "valid {int}",                                                 \
+          (int)(cksumtype), (int)(convlen), (size_t)(convlen),           \
+          (const char *)(convdata), ret, (int)(valid))
+
 #define TRACE_ENCTYPE_LIST_UNKNOWN(c, profvar, name)                    \
     TRACE(c, "Unrecognized enctype name in {str}: {str}", profvar, name)
 
