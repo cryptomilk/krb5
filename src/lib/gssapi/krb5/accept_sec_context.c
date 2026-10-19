@@ -841,10 +841,15 @@ kg_accept_krb5(OM_uint32 *minor_status, gss_ctx_id_t *context_handle,
     TRACE_GSS_IAKERB_VERIFIED(context,
                               exts->iakerb.conv ? exts->iakerb.conv->length : 0,
                               exts->iakerb.verified);
-    if (exts->iakerb.conv && !exts->iakerb.verified) {
-        major_status = GSS_S_BAD_SIG;
-        goto fail;
-    }
+    /*
+     * draft-ietf-kitten-iakerb-03 added the GSS_EXTS_FINISHED extension as a
+     * mandatory check on the proxied AS/TGS conversation, but real Windows
+     * IAKERB initiators don't send it; their AP-REQ authenticator checksum
+     * has no extensions at all.  Treat it as optional instead of rejecting
+     * every real Windows client.  An AP-REQ that does include a Finished
+     * extension is still rejected above (GSS_S_FAILURE from
+     * kg_process_extension()) if the checksum fails to verify.
+     */
 
     /* only DCE_STYLE clients are allowed to send raw AP-REQs */
     if (no_encap != ((gss_flags & GSS_C_DCE_STYLE) != 0)) {
