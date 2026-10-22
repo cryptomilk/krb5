@@ -59,6 +59,7 @@
  */
 /* #pragma ident	"@(#)spnego_mech.c	1.7	04/09/28 SMI" */
 
+#include	<stdarg.h>
 #include	<k5-int.h>
 #include	<k5-der.h>
 #include	<krb5.h>
@@ -69,6 +70,47 @@
 
 #define HARD_ERROR(v) ((v) != GSS_S_COMPLETE && (v) != GSS_S_CONTINUE_NEEDED)
 typedef const gss_OID_desc *gss_OID_const;
+
+/*
+ * Ad-hoc diagnostic tracing for the Samba/Windows IAKERB mechListMIC interop
+ * investigation.  This mechanism has no krb5_context available for the
+ * normal TRACE()/krb5int_trace() infrastructure, so fall back to stderr,
+ * enabled only when SPNEGO_MIC_DEBUG is set.  Not part of upstream krb5.
+ */
+static void
+mic_debug(const char *fmt, ...)
+{
+	static int enabled = -1;
+	va_list ap;
+
+	if (enabled == -1)
+		enabled = (getenv("SPNEGO_MIC_DEBUG") != NULL);
+	if (!enabled)
+		return;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+}
+
+static const char *
+negstate_str(OM_uint32 negState)
+{
+	switch (negState) {
+	case ACCEPT_COMPLETE:
+		return "ACCEPT_COMPLETE";
+	case ACCEPT_INCOMPLETE:
+		return "ACCEPT_INCOMPLETE";
+	case REJECT:
+		return "REJECT";
+	case REQUEST_MIC:
+		return "REQUEST_MIC";
+	case UNSPECIFIED:
+		return "UNSPECIFIED";
+	default:
+		return "?";
+	}
+}
 
 /* private routines for spnego_mechanism */
 static spnego_token_t make_spnego_token(const char *);
@@ -613,6 +655,8 @@ process_mic(OM_uint32 *minor_status, gss_buffer_t mic_in,
 				     mic_in, &qop_state);
 		if (ret == GSS_S_COMPLETE)
 			ret = ntlmssp_reset_crypto_state(minor_status, sc, 1);
+		mic_debug("spnego: process_mic: verify incoming MIC (len=%u) ret=0x%x\n",
+			  (unsigned int)mic_in->length, (unsigned int)ret);
 		if (ret != GSS_S_COMPLETE) {
 			*negState = REJECT;
 			*tokflag = ERROR_TOKEN_SEND;
@@ -629,6 +673,8 @@ process_mic(OM_uint32 *minor_status, gss_buffer_t mic_in,
 				  &tmpmic);
 		if (ret == GSS_S_COMPLETE)
 			ret = ntlmssp_reset_crypto_state(minor_status, sc, 0);
+		mic_debug("spnego: process_mic: generate outgoing MIC ret=0x%x len=%u\n",
+			  (unsigned int)ret, (unsigned int)tmpmic.length);
 		if (ret != GSS_S_COMPLETE) {
 			gss_release_buffer(&tmpmin, &tmpmic);
 			*tokflag = NO_TOKEN_SEND;
@@ -1525,14 +1571,24 @@ acc_ctx_call_acc(OM_uint32 *minor_status, spnego_gss_ctx_id_t sc,
 #endif
 		sc->mech_complete = 1;
 
+		mic_debug("spnego: acc_ctx_call_acc: ctx_flags=0x%x (INTEG=%d MUTUAL=%d) mic_reqd=%d\n",
+			  (unsigned int)sc->ctx_flags,
+			  (sc->ctx_flags & GSS_C_INTEG_FLAG) != 0,
+			  (sc->ctx_flags & GSS_C_MUTUAL_FLAG) != 0,
+			  sc->mic_reqd);
+
 		if (!sc->mic_reqd ||
 		    !(sc->ctx_flags & GSS_C_INTEG_FLAG)) {
 			/* No MIC exchange required, so we're done. */
 			*negState = ACCEPT_COMPLETE;
 			ret = GSS_S_COMPLETE;
+			mic_debug("spnego: acc_ctx_call_acc: no MIC required, "
+				  "negState=ACCEPT_COMPLETE\n");
 		} else {
 			/* handle_mic will decide if we're done. */
 			ret = GSS_S_CONTINUE_NEEDED;
+			mic_debug("spnego: acc_ctx_call_acc: MIC exchange "
+				  "required, deferring to handle_mic\n");
 		}
 	} else if (ret != GSS_S_CONTINUE_NEEDED) {
 		*negState = REJECT;
@@ -3571,12 +3627,20 @@ negotiate_mech(spnego_gss_ctx_id_t ctx, gss_OID_set received,
 					&ctx->mech_set->elements[j])) {
 				*negResult = (i == 0) ? ACCEPT_INCOMPLETE :
 					REQUEST_MIC;
+				mic_debug("spnego: negotiate_mech: matched "
+					  "client mech index %zu of %zu "
+					  "(acceptor mech index %zu), "
+					  "negResult=%s\n", i,
+					  received->count, j,
+					  negstate_str(*negResult));
 				return wrong_krb5_oid ?
 					(gss_OID)&gss_mech_krb5_wrong_oid :
 					&ctx->mech_set->elements[j];
 			}
 		}
 	}
+	mic_debug("spnego: negotiate_mech: no match among %zu client "
+		  "mechs, negResult=REJECT\n", received->count);
 	*negResult = REJECT;
 	return (NULL);
 }
